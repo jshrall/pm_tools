@@ -1,9 +1,10 @@
 import os
 
-class WavedromPlugin(object):
+class FlowchartPlugin(object):
 
     def __init__(self, preprocessor):
-        self.flowchart_path = preprocessor.toolpath("plugins/flowchart/flowchart-cli")
+        self.flowchart_path = os.path.join(preprocessor.repo_root, "plugins", "flowchart", "flowchart-cli", "flowchart-cli.js")
+
         self.pp = preprocessor
         self.token = "flowchart"
         self.pp.register_plugin(self)
@@ -23,7 +24,7 @@ class WavedromPlugin(object):
     def flowchart2img(self, infile, outfile=None, t="png"):
         if outfile and os.path.exists(outfile):
             os.unlink(outfile)
-        cmd = [self.pp.phantomjs, 'flowchart-cli.js', infile, outfile]
-        self.pp._call(cmd, cwd=self.flowchart_path)
+        cmd = '"%s" "%s" "%s" "%s"' % (self.pp.phantomjs, self.flowchart_path, infile, outfile)
+        self.pp._call(cmd)
 
-new = WavedromPlugin
+new = FlowchartPlugin

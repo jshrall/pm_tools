@@ -37,12 +37,14 @@ def initialize(preprocessor):
                 setattr(mod, name, token2plugin[name])
             except KeyError:
                 raise Exception("While resolving required plugin modules for %s: '%s' not found"%(pkgname, name))
+
     # "send" inter-plugin "messages"
     for inst in token2plugin.values():
         if not hasattr(inst, 'send'): continue
         for whereto, what in inst.send.iteritems():
             to = token2plugin[whereto]
             to.received[inst.token] = what
+
     # collect optional callbacks
     for inst in token2plugin.values():
         if hasattr(inst, 'process_mismatch'):

@@ -14,18 +14,19 @@ class Schemdraw2imgPlugin(object):
 
         sdfile, dstfile, update, title = self.pp.get_source(code, filename_or_title, ".sd.txt", ".svg", title)
 
-        code2 = open(sdfile).read()
-
-        full_code = re.sub(r"^\s*", "", """
-        import SchemDraw as schem
-        import SchemDraw.elements as e
-        import SchemDraw.logic as l
-        d = schem.Drawing()
-        __CODE__
-        d.draw(showplot=False)
-        d.save(r"__FIMG__")
-        """, flags=re.M).replace('__CODE__', code2).replace('__FIMG__', dstfile)
-        exec(full_code)
+        if update:
+            code2 = open(sdfile).read()
+    
+            full_code = re.sub(r"^\s*", "", """
+            import SchemDraw as schem
+            import SchemDraw.elements as e
+            import SchemDraw.logic as l
+            d = schem.Drawing()
+            __CODE__
+            d.draw(showplot=False)
+            d.save(r"__FIMG__")
+            """, flags=re.M).replace('__CODE__', code2).replace('__FIMG__', dstfile)
+            exec(full_code)
 
         return self.pp.img2md(dstfile, title, div_style)
 

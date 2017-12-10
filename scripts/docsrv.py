@@ -24,8 +24,8 @@ import SocketServer
 import Queue
 import util
 
-import pythoncom
-import win32com.client 
+#import pythoncom
+#import win32com.client 
 
 HOST, PORT = "localhost", 13053
 SOCK_BUFSZ = 4096
@@ -170,9 +170,10 @@ def doc_server():
     server_thread.daemon = True # Exit the thread when the main thread terminates
     server_thread.start()
 
-    visio_thread = threading.Thread(target=visio_server)
-    visio_thread.daemon = True # Exit the thread when the main thread terminates
-    visio_thread.start()
+    # TODO: support visio as a plugin
+    #visio_thread = threading.Thread(target=visio_server)
+    #visio_thread.daemon = True # Exit the thread when the main thread terminates
+    #visio_thread.start()
 
     # Wait until shut down is signalled, then exit
     g.shutdown_event.wait()
@@ -292,6 +293,7 @@ def visio_job_queue_process(app):
                 doc = None
                 complete_job(job, status)
 
+"""
 def visio_server():
     log("visio_server()")
     # Log pm_doc usage
@@ -312,6 +314,7 @@ def visio_server():
         app = None
         pythoncom.CoUninitialize()
     log("visio_server() finished")
+"""
 
 ############# Test/Debug ############
 

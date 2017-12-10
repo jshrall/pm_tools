@@ -2,13 +2,14 @@
 # rely on pip to install them from the web
 import util
 util.import_modules({}, "all")
+from util import timestamp
 
 import hashlib
 
 import re
 import sys
 import bs4
-import subprocess as _subprocess
+import subprocess as subprocess
 import argparse as _argparse
 import os
 import glob
@@ -24,7 +25,7 @@ import docsrv
 from shutil import copy2
 
 _thisdir = os.path.dirname(os.path.realpath(__file__))
-repo_root = os.path.abspath(os.path.join(_thisdir, "..", ".."))
+repo_root = os.path.abspath(os.path.join(_thisdir, ".."))
 
 sys.path.append(os.path.join(_thisdir, '..'))
 import plugins
@@ -46,10 +47,13 @@ g.visio2convert = {} # [filename] => [{"page": .., "fnout": ..}, ...]
 g.svg_fixes = [] # [{"svg": fname, "png": fname, "title": title}, ...]
 
 def toolpath(relpath):
+    global _thisdir
     abspath = os.path.join(_thisdir, '..', relpath)
     return os.path.normpath(abspath)
 
 toolcfg = util.get_toolconfig()
+
+# TODO: update installer to run brew install graphviz and install other apps like phantomjs
 
 # Global definitions
 g.css_path = toolpath("stylesheets")
@@ -57,16 +61,23 @@ g.font_awesome = toolpath("stylesheets/font-awesome/css/fa_pm_doc.css")
 g.liverefresh = toolpath("stylesheets/liverefresh.html")
 g.dotx = toolpath("stylesheets/reference.dotx")
 g.batik = toolpath("batik/batik-rasterizer.jar")
-g.pandoc = toolpath("Pandoc/pandoc.exe")
+if (os.name == "nt"):
+    g.pandoc = toolpath("Pandoc/pandoc.exe")
+    g.wkhtmltopdf = toolpath("wkhtmltopdf/bin/wkhtmltopdf.exe")
+    g.dot_exe = toolpath("Graphviz2.38/bin/dot.exe")
+    g.phantomjs = toolpath("phantomjs/bin/phantomjs.exe")
+else:
+    g.pandoc = util.which("pandoc")
+    g.wkhtmltopdf = util.which("wkhtmltopdf")
+    g.dot_exe = util.which("dot")
+    g.phantomjs = util.which("phantomjs")
 g.reveal_js = toolpath("reveal.js")
 g.reveal_template = toolpath("reveal.js/template.reveal.js")
 g.html_template = toolpath("frontend/pm_doc.html")
 g.email_template = toolpath("frontend/email.html")
 g.template_path = toolpath("templates")
 g.svg_template = toolpath("frontend/svg_template.html")
-g.phantomjs = toolpath("phantomjs/bin/phantomjs.exe")
 g.pm_doc_js = toolpath("frontend/pm_doc.js")
-g.wkhtmltopdf = toolpath("wkhtmltopdf/bin/wkhtmltopdf.exe")
 g.pdf_footer = toolpath("stylesheets/%s"%toolcfg['pdf_footer_html'])
 g.mathjax = '<script type="text/javascript" src="%s"></script>'%toolcfg['mathjax']
 g.mathjax4pdf = '<script type="text/javascript" src="%s"></script>'%toolcfg['mathjax4pdf']
@@ -82,7 +93,7 @@ class PandocPreproc(object):
         self.auto = auto
         self.fname = fname
         self.basename = os.path.splitext(os.path.basename(fname))[0]
-        self.outf = _tempfile.TemporaryFile("w+b", delete=False)
+        self.outf = tempfile("w+b")
         self.fmt = fmt
         cleanup_deptree(self.fname)
         # "API" for plugins
@@ -90,7 +101,7 @@ class PandocPreproc(object):
         self.toolpath = toolpath
         self.phantomjs = g.phantomjs
         self.java_exe = g.java_exe
-        self.dot_exe = toolpath("Graphviz2.38/bin/dot.exe")
+        self.dot_exe = g.dot_exe
         self._call = _call
         self.exists_and_newer = exists_and_newer
         self.timestamp = timestamp
@@ -158,8 +169,14 @@ class PandocPreproc(object):
         """
         # Search for file in all asset paths
         tried = []
+
+
+        # Replace path separator with native path option for this OS
         for asset in self.assets_paths:
             full_path = os.path.normpath(os.path.join(self.dirs[-1], asset, fname))
+            # For unix paths convert backslashes to forward
+            full_path = full_path.replace("\\", "/")
+
             tried.append(full_path)
 
             # If asset exist
@@ -502,7 +519,7 @@ class PandocPreproc(object):
                 s = ""
             elif token.typ == "POP_DIR":
                 self.dirs.pop()
-                g.hlevel.pop()
+                hlevel = g.hlevel.pop()
                 s = ""
             elif token.typ == "HEADER":
                 s = re.sub("(#+)", r"\1%s"%("#" * g.hlevel[-1]), token.value)
@@ -532,17 +549,13 @@ class PandocPreproc(object):
         """
         Token parser for inline files
         """
-        fname = re.search(r"\[(.*)\]", token.value).group(1).replace("/", "\\")
+        fname = re.search(r"\[(.*)\]", token.value).group(1).replace("/", os.path.sep)
         no_hlevel = fname.startswith("!")
         if no_hlevel:
             fname = fname[1:]
-        # Find the file
-        fullpath = os.path.join(self.dirs[-1], fname)
 
-        # Log the dependency before expanding the glob. If the glob doesn't match, that's fine too,
-        # we want to allow for the case there were no files matching, and then some appeared, and 
-        # we need to trigger a rebuild due to that
-        log_dependency(self.fname, fullpath)
+        # Find the file, including any globs
+        fullpath = os.path.join(self.dirs[-1], fname)
 
         s = ""
 
@@ -553,12 +566,23 @@ class PandocPreproc(object):
                 print "Couldn't find inline file: '%s'"%fullpath
             s = token.value
         else:
+            file_tokens = []
             for f in sorted(glob.glob(fullpath)):
+                # Log the dependency before expanding the glob. If the glob doesn't match, that's fine too,
+                # we want to allow for the case there were no files matching, and then some appeared, and 
+                # we need to trigger a rebuild due to that
+                log_dependency(self.fname, f)
+
                 new_tokens = self.insert_file(f)
-                push_dir = self.token("PUSH_DIR", (os.path.dirname(fullpath), no_hlevel), 0, 0)
+                push_dir = self.token("PUSH_DIR", (os.path.dirname(f), no_hlevel), 0, 0)
                 pop_dir = self.token("POP_DIR", 0, 0, 0)
-                self.tokens = [push_dir] + new_tokens + [pop_dir] + self.tokens
+                file_tokens.append(push_dir)
+                file_tokens += new_tokens
+                file_tokens.append(pop_dir)
             s = ""
+
+            # Merge everything together
+            self.tokens = file_tokens + self.tokens
         return s
 
     def parse_image(self, token):
@@ -712,8 +736,12 @@ def inline_svg(dirname, svg_full_path, title, fmt, div_style):
     # Convert height/width attrubutes to style attributes for consistent
     # rendering between Chrome and IE
     svg = hack_svg_height_width(svg, fmt, div_style)
-    write_svg_html(svg_zoom_file, svg, title)
-    timestamp(svg_zoom_file)
+
+    if not exists_and_newer(svg_zoom_file, svg_full_path):
+        # Only write if the file doesn't exist or it is older that the source svg
+        write_svg_html(svg_zoom_file, svg, title)
+        timestamp(svg_zoom_file)
+
     zoom_rel_path = os.path.relpath(svg_zoom_file, dirname)
 
     # Embed SVG into HTML
@@ -789,7 +817,7 @@ def sendme_email(dirname, filename):
     import smtplib
 
     try:
-        me = _subprocess.check_output(['git', 'config', 'user.email']).strip()
+        me = subprocess.check_output(['git', 'config', 'user.email']).strip()
     except:
         # Use a compute server and idsid instead
         me = toolcfg["default_email"]
@@ -896,7 +924,12 @@ def build_doc(opts):
 
         # release script will overwrite username meta data-* field, but it is useful
         # to populate it here with something for local debug
-        variables += ' --variable=username:"%s"'%os.environ['USERNAME']
+        if (os.environ.has_key("USERNAME")):
+            # win32
+            variables += ' --variable=username:"%s"'%os.environ['USERNAME']
+        elif (os.environ.has_key("USER")):
+            # mac OS
+            variables += ' --variable=username:"%s"'%os.environ['USER']
 
         # Call pandoc to render (pre-processed) markdown
         if (opts.fmt == "docx"):
@@ -1291,7 +1324,7 @@ def save_url(url, dirname):
     if (os.path.exists(dstfile)):
         # write to a tmp file, check to see if there are diffs, and copy
         # only if there are.
-        f = _tempfile.TemporaryFile("w+b", delete=False)
+        f = tempfile("w+b")
         tmpfile = f.name
     else:
         f = open(tmpfile, "wb")
@@ -1310,57 +1343,76 @@ def save_url(url, dirname):
 
     return dstfile
 
+def tempfile(access):
+    """
+    Get a tempfile, assume no delete
+    """
+    if os.name == "nt":
+        f = _tempfile.NamedTemporaryFile(access, delete=False)
+        return f
+    else:
+        f = _tempfile.NamedTemporaryFile(access)
+        return f
+
 def _call(cmd, wait=True, verbose=False, errors_are_warnings=False, **args):
     verbose |= g.opts.verbose
     if (isinstance(cmd, list)):
-        if verbose:
-            print " ".join(cmd)
-    else:
-        if verbose:
-            print cmd
+        # Turn into a string.
+        cmd = " ".join(cmd)
 
-    info = _subprocess.STARTUPINFO()
-    if (not verbose):
-        info.dwFlags |= _subprocess.STARTF_USESHOWWINDOW
-        info.wShowWindow = _subprocess.SW_HIDE
+    if verbose:
+        print cmd
 
-    if (wait):
-        try:
-            process = _subprocess.check_output(cmd, creationflags = _subprocess.CREATE_NEW_CONSOLE, startupinfo = info, stderr=_subprocess.STDOUT, **args)
-            return process
-        except _subprocess.CalledProcessError, e:
-            if (errors_are_warnings):
-                warn("Ignoring error when running `%s`\n\nError:\n%s" % (cmd, e.output))
-            else:
+    if (os.name == "nt"):
+        # Windows
+        info = subprocess.STARTUPINFO()
+        if (not verbose):
+            info.dwFlags |= subprocess.STARTF_USESHOWWINDOW
+            info.wShowWindow = subprocess.SW_HIDE
+
+        if (wait):
+            try:
+                process = subprocess.check_output(cmd, creationflags = subprocess.CREATE_NEW_CONSOLE, startupinfo = info, stderr=subprocess.STDOUT, **args)
+                return process
+            except subprocess.CalledProcessError, e:
+                if (errors_are_warnings):
+                    warn("Ignoring error when running `%s`\n\nError:\n%s" % (cmd, e.output))
+                else:
+                    error("Error incurred when running `%s`\n\nError:\n%s" % (cmd, e.output))
+
+        else:
+            try:
+                process = subprocess.Popen(cmd, creationflags = subprocess.CREATE_NEW_CONSOLE, startupinfo = info, stderr=subprocess.STDOUT, **args)
+                return process
+            except subprocess.CalledProcessError, e:
                 error("Error incurred when running `%s`\n\nError:\n%s" % (cmd, e.output))
 
     else:
-        try:
-            process = _subprocess.Popen(cmd, creationflags = _subprocess.CREATE_NEW_CONSOLE, startupinfo = info, stderr=_subprocess.STDOUT, **args)
-            return process
-        except _subprocess.CalledProcessError, e:
-            error("Error incurred when running `%s`\n\nError:\n%s" % (cmd, e.output))
+        # Mac OS X
+        if (wait):
+            try:
+                process = subprocess.check_output(cmd, stderr=subprocess.STDOUT, shell=True, **args)
+                return process
+            except subprocess.CalledProcessError, e:
+                if (errors_are_warnings):
+                    warn("Ignoring error when running `%s`\n\nError:\n%s" % (cmd, e.output))
+                else:
+                    error("Error incurred when running `%s`\n\nError:\n%s" % (cmd, e.output))
+            except OSError, e:
+                if (errors_are_warnings):
+                    warn("Ignoring error when running `%s`\n\nError:\n%s" % (cmd, str(e)))
+                else:
+                    error("Error incurred when running `%s`\n\nError:\n%s" % (cmd, str(e)))
+        else:
+            try:
+                process = subprocess.Popen(cmd, stderr=subprocess.STDOUT, shell=True, **args)
+                return process
+            except subprocess.CalledProcessError, e:
+                error("Error incurred when running `%s`\n\nError:\n%s" % (cmd, e.message))
+            except OSError, e:
+                error("Error incurred when running `%s`\n\nError:\n%s" % (cmd, str(e)))
 
-def equal(fname, code):
-    """
-    Check to see if the code matches the file
-    """
-    f_src = open(fname).read()
-    if (f_src == code):
-        return True
-    else:
-        return False
-
-def timestamp(fname):
-    """
-    Create a file that is our timestamp for a generated file
-    This is written to fool the syncplicity which keeps on reverting
-    timestamps
-    """
-    f = open(fname + ".time", "w")
-    f.write("Updated at %s" % time.time())
-    f.close()
-
+ 
 
 def exists_and_newer(generated_file, source_file):
     """
@@ -1371,9 +1423,11 @@ def exists_and_newer(generated_file, source_file):
     if (not os.path.exists(source_file)):
         return False
 
+
     gen_time = os.stat(generated_file + ".time").st_mtime
     src_time = os.stat(source_file).st_mtime
     if (gen_time < src_time):
+        print "Regenerate %s" % generated_file
         return False
     else:
         return True
@@ -1411,13 +1465,16 @@ def cleanstr(s):
     s = re.sub(r'\xE2\x80\x9c', '"', s)               # left quote
     s = re.sub(r'\xE2\x80\x9d', '"', s)               # right quote
     s = re.sub(r'\xE2\x80\xa6', '...', s)             # ellipsis
+    s = re.sub(r'\xE2\x80\xa2', 'o', s)               # bullet
+    s = re.sub(r'\xE2\x86\x90', '&larr;', s)          # left arrow
+    s = re.sub(r'\xE2\x86\x92', '&rarr;', s)          # right arrow
     # ASCII-8bit (latin encoding)
     s = re.sub(r'\x85' , '...', s)     # ellipsis
     s = re.sub(r'[\x91\x92]', "'", s)  # smart quote
     s = re.sub(r'[\x93\x94]', '"', s)  # smart quote
     s = re.sub(r'\x95', 'o', s)        # special bullet character
     s = re.sub(r'[\x96\x97]', '"', s)  # dashes
-    s = re.sub(r'\xA0', ' ', s)        # "no break space"
+    s = re.sub(r'[\xA0\xc2]', ' ', s)        # "no break space"
     s = re.sub(r'\xA6', '|', s)        # special vertical characther
     s = re.sub(r'\xA9', '&copy;', s)   # copyright
     s = re.sub(r'\xAe', '&reg;', s)    # registered
@@ -1491,6 +1548,16 @@ def deptree_commit():
     db.commit()
     db.close()
 
+def equal(fname, code):
+    """
+    Check to see if the code matches the file
+    """
+    f_src = open(fname).read()
+    if (f_src == code):
+        return True
+    else:
+        return False
+
 def main():
     if (g.opts.dotx != None):
         g.dotx = g.opts.dotx
@@ -1522,7 +1589,7 @@ def setup_parser():
     parser.add_argument('--waitonerr', required=False, default=False, action="store_true", help='Stall execution upon an error, require user to acknowledge')
     parser.add_argument('--style', required=False, help='Set the style type')
     parser.add_argument('--perf', required=False, default=False, help='Set to true to look at the latency of each plugin run.')
-    parser.add_argument('markdown_files', metavar="*.mmd", type=str, nargs="+", default=None, help='markdown file for conversion.')
+    parser.add_argument('markdown_files', metavar="*.mmd", type=str, nargs="+", default=None, help='markdown file(s) for conversion.')
     parser.add_argument('--pandoc_args', required=False, default="", help='Arguments to pass on to pandocs (Optional).')
     parser.add_argument('--deptree', metavar="DB_FILENAME", required=False, help='Log dependencies into the sqlite database')
     parser.add_argument('--verbose', required=False, action="store_true", help='Output debugging information')

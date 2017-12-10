@@ -69,3 +69,5 @@ _.sw?
 
 #chrome pollution
 debug.log
+#Mac OS X pollution
+.DS_Store

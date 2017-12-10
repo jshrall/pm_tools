@@ -27,13 +27,24 @@ pip_modules = { # map import_name to pip install arguments
         'tabulate': 'tabulate',
         'coverage': 'coverage',
         'psutil': 'psutil',
-        'clr': 'pythonnet',
+        # TODO: move lib dependencies to plugins
+        #'clr': 'pythonnet',
         'bs4': 'bs4',
         'html5lib': 'html5lib==0.999',
         'yaml': 'pyyaml',
         'lxml': 'lxml==3.8.0', # for word2mmd
                                # Using 3.8 as 4.0 doesn't contain Windows binaries
         }
+
+def timestamp(fname):
+    """
+    Create a file that is our timestamp for a generated file
+    This is written to fool backup tools which can reverting
+    timestamps
+    """
+    f = open(fname + ".time", "w")
+    f.write("Updated at %s" % time.time())
+    f.close()
 
 def import_modules(namespace, import_names):
     """
@@ -70,7 +81,7 @@ def import_modules(namespace, import_names):
         import pip
         for import_name in pip_todo:
             print "Auto-installing %s"%pip_modules[import_name]
-            pip.main(['install', pip_modules[import_name], '--disable-pip-version-check'])
+            pip.main(['install', pip_modules[import_name], '--disable-pip-version-check', "--quiet"])
             namespace[module] = __import__(import_name)
 
 def error(s):
@@ -317,43 +328,58 @@ def src2dest_unittest():
     assert src2dest('src', t) == []
 
 def which(program):
-    # https://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
-    def is_exe(fpath):
-        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+    if (sys.platform == "win32"):
+        # https://stackoverflow.com/questions/377017/test-if-executable-exists-in-python
+        def is_exe(fpath):
+            return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
 
-    fpath, fname = os.path.split(program)
-    if fpath:
-        if is_exe(program):
-            return program
+        fpath, fname = os.path.split(program)
+        if fpath:
+            if is_exe(program):
+                return program
+        else:
+            for path in os.environ["PATH"].split(os.pathsep):
+                path = path.strip('"')
+                exe_file = os.path.join(path, program)
+                if is_exe(exe_file):
+                    return exe_file
+    
+        raise Exception("Unable to find %s" % program)
     else:
-        for path in os.environ["PATH"].split(os.pathsep):
-            path = path.strip('"')
-            exe_file = os.path.join(path, program)
-            if is_exe(exe_file):
-                return exe_file
+        # mac os x
+        from distutils.spawn import find_executable
+        result = find_executable(program)
+        if result != None: return result
 
-    return None
+        # failed: 
+        raise Exception("Unable to find %s" % program)
 
 def locate_java():
-    import _winreg as wr
-    aReg = wr.ConnectRegistry(None, wr.HKEY_LOCAL_MACHINE)
-    # http://stackoverflow.com/a/3930575/1924207
-    paths = [r'JavaSoft\Java Runtime Environment', r'Wow6432Node\JavaSoft\Java Runtime Environment',
-            r'JavaSoft\Java Development Kit', r'Wow6432Node\JavaSoft\Java Development Kit']
-    for p in paths:
-        try:
-            aKey = wr.OpenKey(aReg, r'Software\%s'%p)
-        except WindowsError:
-            continue
-        ver = str(wr.QueryValueEx(aKey, r'CurrentVersion')[0])
-        aKey = wr.OpenKey(aReg, r'Software\%s\%s'%(p, ver))
-        javahome = str(wr.QueryValueEx(aKey, r'JavaHome')[0])
-        return javahome + r'\bin\java.exe'
-    # Try PATH
-    java_exe = which('java.exe')
-    if java_exe:
-        return java_exe
-    raise Exception("Java not found")
+    if (sys.platform == "win32"):
+        import _winreg as wr
+        aReg = wr.ConnectRegistry(None, wr.HKEY_LOCAL_MACHINE)
+        # http://stackoverflow.com/a/3930575/1924207
+        paths = [r'JavaSoft\Java Runtime Environment', r'Wow6432Node\JavaSoft\Java Runtime Environment',
+                r'JavaSoft\Java Development Kit', r'Wow6432Node\JavaSoft\Java Development Kit']
+        for p in paths:
+            try:
+                aKey = wr.OpenKey(aReg, r'Software\%s'%p)
+            except WindowsError:
+                continue
+            ver = str(wr.QueryValueEx(aKey, r'CurrentVersion')[0])
+            aKey = wr.OpenKey(aReg, r'Software\%s\%s'%(p, ver))
+            javahome = str(wr.QueryValueEx(aKey, r'JavaHome')[0])
+            return javahome + r'\bin\java.exe'
+        # Try PATH
+        java_exe = which('java.exe')
+        if java_exe:
+            return java_exe
+        raise Exception("Java not found")
+    else:
+        # Try PATH
+        java_exe = which('java')
+        if java_exe:
+            return java_exe
 
 # If run as a script, check/download all non-standard modules
 if __name__ == "__main__":

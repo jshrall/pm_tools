@@ -750,17 +750,6 @@ border: 1px solid #e2e2dd;
 border-radius: 3px;
 }
 
-/* fasm code syntax highlighting: VIM's "dawn" light scheme */
-.fasmCode       { line-height: 18px; }
-.fasm_instrs    { color: #b76161; }
-.fasm_comment   { color: #4d72e1; }
-.fasm_labels    { color: #4e438f; }
-.fasm_fixme     { color: #ff1493; font-weight: bold; }
-.fasm_registers { color: #3e6a8f; }
-.fasm_constants { color: #921192; }
-.fasm_variables { color: #008b8b; font-weight: bold; }
-
-
 div.figure /* Pandoc figure-style image */
 {
 display: block; 
@@ -825,10 +814,12 @@ max-width: 100%;
 color: #0064a5;
 }
 
+/* broken for safari + graffle
 svg text {
-/* Preserve space in SVG text, otherwise Visio text may be messed up */
-white-space: pre;
+  /* Preserve space in SVG text, otherwise Visio text may be messed up
+  white-space: pre;
 }
+*/
 
 div.packet {
 margin-top: 1.5em;

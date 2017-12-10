@@ -1,5 +1,7 @@
 import os
 
+# TODO: embed dot tool along with the plugin.
+
 class DotPlugin(object):
 
     def __init__(self, preprocessor):
