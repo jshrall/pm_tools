@@ -12,6 +12,7 @@ import bs4
 import subprocess as subprocess
 import argparse as _argparse
 import os
+import fnmatch
 import glob
 import tempfile as _tempfile
 import collections
@@ -868,19 +869,24 @@ def get_src_path(fn):
     return cfg["repo_name"], relpath.replace('\\', '/')
 
 def build_doc(opts):
-    # Fixme - look into options for handling criticmarkup
-    # Use glob to expand it
-
     final_file_list = []
     for f in opts.markdown_files:
-        globlist = glob.glob(f)
-        for x in globlist:
-            final_file_list.append(x)
+        if (os.path.isdir(f)):
+            # Search the entire tree for valid mardkown files
+            ftype_match_str = ".*(%s)$" % "|".join(valid_ftypes)
+            for root, dirnames, filenames in os.walk(f):
+                for filename in filter(lambda x: re.match(ftype_match_str, x), filenames):
+                    final_file_list.append(os.path.join(root, filename))
+        else:
+            globlist = glob.glob(f)
+            for x in globlist:
+                final_file_list.append(x)
 
     if opts.markdown_files and not final_file_list:
         raise Exception('Couldn\'t locate input file(s): %s'%(', '.join(opts.markdown_files)))
 
     for filename in final_file_list:
+        if (len(final_file_list) > 1): print "Working on %s" % filename
 
         fnabs = os.path.abspath(filename) # also normalizes slashes to backslashes
 
@@ -1064,7 +1070,7 @@ def build_doc(opts):
                 _call('"%s" --javascript-delay 25000 --footer-html "%s" --margin-bottom 15mm --margin-top 15mm --print-media-type "%s" "%s"' % (g.wkhtmltopdf, pdf_footer_link, outfile, pdf_file), errors_are_warnings=True)
 
                 # And go ahead and remove the source html file when done
-                #os.remove(outfile)
+                os.remove(outfile)
 
             if (opts.chrome):
                 chrome(outfile)
@@ -1468,6 +1474,7 @@ def cleanstr(s):
     s = re.sub(r'\xE2\x80\xa2', 'o', s)               # bullet
     s = re.sub(r'\xE2\x86\x90', '&larr;', s)          # left arrow
     s = re.sub(r'\xE2\x86\x92', '&rarr;', s)          # right arrow
+    s = re.sub(r'\xE2\x88\x86', '&Delta;', s)         # delta
     # ASCII-8bit (latin encoding)
     s = re.sub(r'\x85' , '...', s)     # ellipsis
     s = re.sub(r'[\x91\x92]', "'", s)  # smart quote
@@ -1483,6 +1490,10 @@ def cleanstr(s):
     s = re.sub(r'\xbc', '1/4', s)
     s = re.sub(r'\xbf', ' ', s)        # inverted question mark??
     s = re.sub(r'\xd7', 'x', s)        # special x char
+    s = re.sub(r'\xab', '&lt;&lt;', s) # << char
+    s = re.sub(r'\xbb', '&gt;&gt;', s) # >> char
+    s = re.sub(r'\xc3', 'n', s)        # n~ char
+    s = re.sub(r'\xce', 'u', s)        # micro
 
     # Use HTML "micro" entity for 1us, 0.8uV, 100uA, and so on
     s = fix_units(s)
