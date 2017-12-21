@@ -37,7 +37,7 @@ $if(subtitle)$
   <h1 class="subtitle">$subtitle$</h1>
 $endif$
   <footer>
-    $if(author)$<span class="author">$for(author)$$author$$sep$, $endfor$</span>$endif$ $if(date)$<span class="date"> - $date$</span>$endif$
+    $if(author)$<span class="author">$for(author)$$author$$sep$, $endfor$</span>$endif$ $if(date)$<span class="date"><br>$date$</span>$endif$
   </footer>
 </section>
 $endif$
@@ -58,6 +58,9 @@ $body$
       // More info https://github.com/hakimel/reveal.js#configuration
       Reveal.initialize({
         history: false,
+        center: false,
+	    // Display a presentation progress bar
+	    progress: true,
 
         // More info https://github.com/hakimel/reveal.js#dependencies
         dependencies: [
