@@ -20,6 +20,11 @@ pm_doc is called **pandoc markdown**. Good reference for pandoc markdown syntax 
 
 # Lists
 
+<table>
+<tr><th>Markdown</th><th>Rendered</th></tr>
+<tr>
+<td>
+```
 1. First ordered list item
 2. Another item
     * Unordered sub-list. 
@@ -37,9 +42,37 @@ pm_doc is called **pandoc markdown**. Good reference for pandoc markdown syntax 
 * Unordered list can use asterisks
 - Or minuses
 + Or pluses
+```
+</td>
+<td>
+1. First ordered list item
+2. Another item
+    * Unordered sub-list. 
+1. Actual numbers don't matter, just that it's a number
+    1. Ordered sub-list
+4. And another item.
+
+   You can have properly indented paragraphs within list items. Notice the blank line above, and the 
+   leading spaces (at least one, but we'll use three here to also align the raw Markdown).
+
+   To have a line break without a paragraph, you will need to use two trailing spaces.  
+   Note that this line is separate, but within the same paragraph.  
+   (This is contrary to the typical GFM line break behaviour, where trailing spaces are not required.)
+
+* Unordered list can use asterisks
+- Or minuses
++ Or pluses
+</td>
+</tr>
+</table>
 
 ## Numbered List <a name="explicit_reference"/>
 
+<table>
+<tr><th>Markdown</th><th>Rendered</th></tr>
+<tr>
+<td>
+```
 1. Item1
 1. Item2
 1. Item3
@@ -47,6 +80,18 @@ pm_doc is called **pandoc markdown**. Good reference for pandoc markdown syntax 
     * attribute
     * Attribute
 1. Last Item
+```
+</td>
+<td>
+1. Item1
+1. Item2
+1. Item3
+1. Item4
+    * attribute
+    * Attribute
+1. Last Item
+</td>
+</table>
 
 # Formatting text
 
@@ -56,6 +101,10 @@ Use simple html marking to &lt;mark&gt;<mark>highlight</mark>&lt;/mark&gt;
 
 ## Emphasized text
 
+<table>
+<tr><th>Markdown</th><th>Rendered</th></tr>
+<tr><td>
+```
 To *emphasize* some text, surround it with `*`s or `_`, like this:
 
 This text is _emphasized with underscores_, and this
@@ -72,16 +121,43 @@ This is * not emphasized *, and \*neither is this\*.
 Because `_` is sometimes used inside words and identifiers, pandoc does not interpret a `_`
 surrounded by alphanumeric characters as an emphasis marker. If you want to emphasize just part of a
 word, use `*`:
+```
+</td>
+<td>
+To *emphasize* some text, surround it with `*`s or `_`, like this:
 
-feas*ible*, not feas*able*.
+This text is _emphasized with underscores_, and this
+is *emphasized with asterisks*.
+
+Double * or _ produces **strong emphasis**:
+
+This is **strong emphasis** and __with underscores__.
+
+A `*` or `_` character surrounded by spaces, or backslash-escaped, will not trigger emphasis:
+
+This is * not emphasized *, and \*neither is this\*.
+
+Because `_` is sometimes used inside words and identifiers, pandoc does not interpret a `_`
+surrounded by alphanumeric characters as an emphasis marker. If you want to emphasize just part of a
+word, use `*`:
+</td></tr>
+<table>
+
+<table>
+<tr><th>Markdown</th><th>Rendered</th></tr>
+<tr><td>`feas*ible*, not feas*able*.`</td><td>feas*ible*, not feas*able*.</td></tr>
+</table>
 
 ## Strikeout
 
-This ~~is deleted text.~~
+<table>
+<tr><th>Markdown</th><th>Rendered</th></tr>
+<tr><td>`This ~~is deleted text.~~`</td><td>This ~~is deleted text.~~</td><tr>
+</table>
 
 ## Superscripts and subscripts
 
-H~2~O is a liquid.  2^10^ is 1024.
+`H~2~O is a liquid.  2^10^ is 1024.` translates to H~2~O is a liquid.  2^10^ is 1024.
 
 # More Markdown
 
@@ -152,8 +228,7 @@ multiple lines.
 
 The alternative for markdown syntax for simple tables is [Embedded CSV and TSV tables].
 
-[Embedded XLSX Sheet] plugin allows inserting more complex tables with formatting, cell
-highlighting, column span, and so on.
+See the [Plugins] section for more options for inserting tables.
 
 ## Footnotes
 
@@ -191,7 +266,8 @@ You can also [add an explicit reference](#explicit_reference) in case it is not 
 the document.  To set up that reference, use code like this:
 
 ```
-### Numbered List <a name="explicit_reference"/>
+<a name="explicit_reference"/>
+### Numbered List
 ```
 
 ### Figures and Tables
@@ -205,7 +281,7 @@ link to [Table: Sample Excel Sheet].
 ### Other Files
 
 Use the same directory structure as is in the source directory tree. For any markdown files, replace
-the link with .html instead of .mmd. Use relative paths to refer to files in other directories.
+the link with .html instead of .md. Use relative paths to refer to files in other directories.
 
 ## Code Syntax Highlighting
 
@@ -304,7 +380,7 @@ You can also insert file located in different folder relative to the current fil
 If you choose to insert a file that doesn't exist, it will just pass through as-is.  No warnings or
 errors are thrown. For example, see below a non-existent file.
 
-[_chapter2.md]
+[_does_not_exist_chapter.md]
 
 Finally, in some cases you may want to insert a chapter at the base heading level (versus inline
 with the containing header). To do this:
@@ -336,50 +412,6 @@ content will be put inside a `<div>` element with specified style attributes.
 
 <!-- Insert all plugin auto-documentation as child chapters -->
 [../plugins/*/doc/*.md]
-
-## Signal Interface Definition
-
-Using the simple syntax provided below, you can develop some simple but effective diagrams to
-describe signal interfaces between two logic blocks.  This plugin is called `sigint`.
-
-Syntax is as follows.  The 'clock' and 'power' tags are special.  They are detected by looking for
-the exact syntax as show below.  If found, they will be picked up and placed in the summary table.
-
-```
-sigint("Test Interface")
-== srcip <- dstip: signame1
-Markdown **description**
-clock: dclk
-power: vccd
-
-== srcip -> dstip: signame2
-
-== srcip <-> dstip: signame3
-clock: aclk
-power: vcca
-This is an *example*
-
-1. Item1
-2. Item2
-```
-
-
-```sigint("Test Interface")
-== srcip <- dstip: signame1
-Markdown **description**
-clock: dclk
-power: vccd
-
-== srcip -> dstip: signame2
-
-== srcip <-> dstip: signame3
-clock: bclk
-power: vccb
-This is an *example*
-
-1. Item1
-2. Item2
-```
 
 ## Embedded VISIO Drawing
 
