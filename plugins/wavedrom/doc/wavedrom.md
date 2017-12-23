@@ -12,7 +12,7 @@ a figure similar to other figures.
 
 For example, the below code:
 
-```
+<pre><code>&#96;&#96;&#96;wavedrom("Sample Timing Diagram")
 { signal: [
   {    name: 'clk',   wave: 'p..Pp..P'},
   ['Master',
@@ -31,7 +31,7 @@ For example, the below code:
     {  name: 'rdata', wave: 'x.....4x', data: 'Q2'},
   ]
 ]}
-``` 
+&#96;&#96;&#96;</code></pre>
 
 Is rendered into this wavedrom output
 
