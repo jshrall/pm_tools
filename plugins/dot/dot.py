@@ -4,6 +4,9 @@ import os
 
 class DotPlugin(object):
 
+    # Set up default styles here
+    style = "-Nfontname=Helvetica -Nfontsize=10 -Efontname=Helvetica -Efontsize=10 -Gfontname=Helvetica -Gfontsize=10"
+
     def __init__(self, preprocessor):
         self.pp = preprocessor
         self.token = "dot"
@@ -25,6 +28,6 @@ class DotPlugin(object):
         if (not infile.endswith(".dot")):
             raise Exception("Invalid dot file requested: %s" % infile)
         t = os.path.splitext(outfile)[1][1:]
-        self.pp._call(r'"%s" -T%s "%s" -o "%s"' % (self.pp.dot_exe, t, infile, outfile))
+        self.pp._call(r'"%s" %s -T%s "%s" -o "%s"' % (self.pp.dot_exe, DotPlugin.style, t, infile, outfile))
 
 new = DotPlugin
