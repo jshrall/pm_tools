@@ -1433,7 +1433,6 @@ def exists_and_newer(generated_file, source_file):
     gen_time = os.stat(generated_file + ".time").st_mtime
     src_time = os.stat(source_file).st_mtime
     if (gen_time < src_time):
-        print "Regenerate %s" % generated_file
         return False
     else:
         return True

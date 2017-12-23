@@ -352,7 +352,7 @@ def which(program):
         if result != None: return result
 
         # failed: 
-        raise Exception("Unable to find %s" % program)
+        raise Exception("Unable to find %s in %s" % (program, os.environ['PATH']))
 
 def locate_java():
     if (sys.platform == "win32"):

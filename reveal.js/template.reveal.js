@@ -66,6 +66,7 @@ $body$
         dependencies: [
           { src: '$revealpath$/plugin/markdown/marked.js' },
           { src: '$revealpath$/plugin/markdown/markdown.js' },
+          { src: '$revealpath$/plugin/math/math.js', async: true },
           { src: '$revealpath$/plugin/notes/notes.js', async: true },
           { src: '$revealpath$/plugin/highlight/highlight.js', async: true, callback: function() { hljs.initHighlightingOnLoad(); } }
         ]
