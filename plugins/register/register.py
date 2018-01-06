@@ -113,6 +113,7 @@ class RegisterPlugin(object):
                 ("RW0C", "Read/Write 0 to Clear: S/W can only write 0, H/W may set"),
                 ("RW1S", "Read/Write 1 to Set: S/W can only write 1, H/W may clear"),
                 ("RW1C", "Read/Write 1 to Clear: S/W can only write 1, which clears the bit (sets it to 0)"),
+                ("W1C", "Write 1 to Clear: S/W can only write 1, which clears the bit (sets it to 0). Reads are not supported."),
                 ("RWL", "Read/Write, with Lock capability"),
                 ("RW1SV", "Set by H/W, cleared on S/W read? - review usages"),
                 ])

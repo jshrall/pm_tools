@@ -1,0 +1,39 @@
+<style>
+/* Glossary Link (the basis for the mouseover) */
+.glossary_link {
+     position: relative;
+     display: inline-block;
+     color: #a86060;
+     border-bottom: 1px dotted #a86060; /* dots under the hoverable text */
+}
+ 
+/* Definition Pop-up. These blocks are placed in the HTML but will be made visible 
+    and physically placed only on mouse hover via javascript
+ */
+.definition_popup {
+     position: absolute;
+     width: 300px;
+     display: none;
+     background-color: #a86060;
+     color: #fff;
+     text-align: left;
+     padding: 5px 5px;
+     border-radius: 6px;
+     font-style: normal;
+     font-size: 14px;
+     border: 10px solid transparent;
+     line-height: 1.5em;
+}
+                                                                                     
+/* This is the arrow, colorize the triangle that you want.
+ * bottom for an up arrow, top for a down arrow
+ */
+.definition_popup_arrow {
+     position: absolute;
+     width: 0px;
+     left: 0px;
+     display: none;
+     border: 10px solid transparent; /* arrow size */
+     border-bottom-color: #a86060;
+}
+</style>

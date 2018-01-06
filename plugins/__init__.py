@@ -7,6 +7,8 @@ process_mismatch_callbacks = []
 preprocess_callbacks = []
 postprocess_soup_callbacks = []
 postprocess_html_callbacks = []
+header_includes = []
+after_includes = []
 
 pkgnames = [x for x in os.listdir(_thisdir) if os.path.isfile(os.path.join(_thisdir, x, '__init__.py'))]
 
@@ -36,7 +38,7 @@ def initialize(preprocessor):
             try:
                 setattr(mod, name, token2plugin[name])
             except KeyError:
-                raise Exception("While resolving required plugin modules for %s: '%s' not found"%(pkgname, name))
+                raise Exception("While resolving required plugin modules for %s: '%s' not found"%(mod, name))
 
     # "send" inter-plugin "messages"
     for inst in token2plugin.values():
@@ -55,6 +57,31 @@ def initialize(preprocessor):
             postprocess_html_callbacks.append(inst.postprocess_html)
         if hasattr(inst, 'postprocess_soup'):
             postprocess_soup_callbacks.append(inst.postprocess_soup)
+
+    # Gather html hooks
+    for mod in modules:
+        if hasattr(mod, 'include_in_header'):
+            include_in_header(mod, mod.include_in_header)
+        if hasattr(mod, 'include_after'):
+            include_after(mod, mod.include_after)
+
+def include_in_header(mod, this):
+    """
+    Add the requested file to the list of items we should include in the header.
+    """
+    include_file = os.path.join(os.path.abspath(os.path.split(mod.__file__)[0]), this)
+    if (not os.path.exists(include_file)):
+        raise Exception("Unable top include requested 'after' plugin file because it does not exist: '%s'" % include_file)
+    header_includes.append(include_file)
+
+def include_after(mod, this):
+    """
+    Add the requested file to the list of items we should include after (at the end of the body)
+    """
+    include_file = os.path.join(os.path.abspath(os.path.split(mod.__file__)[0]), this)
+    if (not os.path.exists(include_file)):
+        raise Exception("Unable top include requested 'after' plugin file because it does not exist: '%s'" % include_file)
+    after_includes.append(include_file)
 
 # process_mismatch() gets called for the "regular text", i.e. everything
 # that is otherwise not explicitly purposed

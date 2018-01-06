@@ -990,6 +990,12 @@ def build_doc(opts):
                         error("Unable to find %s from style reference '%s'"%(css, opts.style))
                     cmd += ' --include-in-header="%s"'%css
 
+                # Handle any requested header or after includes from the plugins
+                for inc in plugins.header_includes:
+                    cmd += ' --include-in-header="%s"' % inc
+                for inc in plugins.after_includes:
+                    cmd += ' --include-after="%s"' % inc
+
             cmd += variables
 
             _call(cmd, cwd=dirname)
@@ -1474,6 +1480,12 @@ def cleanstr(s):
     s = re.sub(r'\xE2\x86\x90', '&larr;', s)          # left arrow
     s = re.sub(r'\xE2\x86\x92', '&rarr;', s)          # right arrow
     s = re.sub(r'\xE2\x88\x86', '&Delta;', s)         # delta
+    s = re.sub(r'\xE2\x89\xa4', '&le;', s)            # <=
+    s = re.sub(r'\xE2\x89\xa5', '&ge;', s)            # >=
+
+    # ?
+    s = re.sub(r'\xf0\x9f\x98\x89', '&#x1F609;', s)   # winking smiley
+
     # ASCII-8bit (latin encoding)
     s = re.sub(r'\x85' , '...', s)     # ellipsis
     s = re.sub(r'[\x91\x92]', "'", s)  # smart quote
@@ -1486,13 +1498,14 @@ def cleanstr(s):
     s = re.sub(r'\xAe', '&reg;', s)    # registered
     s = re.sub(r'\xb0', "&deg;", s)    # Degree character
     s = re.sub(r'\xb1', '&plusmn;', s) # special x char
+    s = re.sub(r'\xb5', '&micro;', s)        # micro
     s = re.sub(r'\xbc', '1/4', s)
     s = re.sub(r'\xbf', ' ', s)        # inverted question mark??
     s = re.sub(r'\xd7', 'x', s)        # special x char
     s = re.sub(r'\xab', '&lt;&lt;', s) # << char
     s = re.sub(r'\xbb', '&gt;&gt;', s) # >> char
     s = re.sub(r'\xc3', 'n', s)        # n~ char
-    s = re.sub(r'\xce', 'u', s)        # micro
+    s = re.sub(r'\xce', '&micro;', s)        # micro
 
     # Use HTML "micro" entity for 1us, 0.8uV, 100uA, and so on
     s = fix_units(s)
