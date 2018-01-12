@@ -715,12 +715,34 @@ def inline_svg(dirname, svg_full_path, title, fmt, div_style):
         # in the same document
         svg_rel_path = os.path.relpath(svg_full_path, dirname)
         suffix = hashlib.md5(svg_rel_path).hexdigest()[-6:]
-        classes = re.findall(r'class="(\w+)"', text)
-        re_class = r'\.(%s)\b'%('|'.join(classes))
+
+        # Some SVGs define classes and use them in class="classname" declarations.
+        # Others just declare them in case they might be used, such as .class{...}
+        # We need to find and fix both
+        matches = re.findall(r'class="([^"]+)"', text, re.IGNORECASE)
+        used_classes = []
+        for match in matches:
+            classlist = match.split()
+            used_classes += classlist
+        stylematch = re.search(r'<style>(.*?)</style>', text, re.DOTALL)
+        defined_classes = []
+        if stylematch != None:
+            defined_classes = re.findall(r'\.(\w+)\s*{[^}]+}', stylematch.group(1))
+        re_class = r'\.(%s)\b'%('|'.join(used_classes + defined_classes))
+
         def mod_style(mo):
             return re.sub(re_class, r'.\1_'+suffix, mo.group(0))
         text = re.sub(r'(?s)<style.+?</style>', mod_style, text)
-        text = re.sub(r'class="(\w+)"', r'class="\1_%s"'%suffix, text)
+
+        # you will see either class="classname" or class="class1 class2"
+        # We need to handle both
+        def mod_class(mo):
+            classlist = mo.group(1).split()
+            unique_classlist = []
+            for cl in classlist:
+                unique_classlist.append("%s_%s" % (cl, suffix))
+            return 'class="%s"' % " ".join(unique_classlist)
+        text = re.sub(r'class="([^"]+)"', mod_class, text)
         return text
 
     # integrate the SVG here and add in the SVG template link
@@ -868,6 +890,36 @@ def get_src_path(fn):
         deptree_conn.close()
     return cfg["repo_name"], relpath.replace('\\', '/')
 
+def wrap_with(src_file, tag):
+    """Wrap a given file with requested tag <tag>..</tag> tags for HTML insertion.
+
+    Function will skip generating the file if it already exists and is newer.
+    
+    Args:
+        css_file (string): Absolute path to a src file
+        tag (string): Tag to wrap with
+    
+    Returns:
+        string: Path to the file wrapped in <tag>...</tag>
+    """
+    # See if we have already generated the file.
+    # If so, use it else generate it.
+    src_dir, src_name = os.path.split(src_file)
+    src_dir = os.path.join(src_dir, "auto")
+    wrapped_src = os.path.join(src_dir, src_name)
+    if not exists_and_newer(wrapped_src, src_file):
+        if not os.path.exists(src_dir):
+            os.mkdir(src_dir)
+        srcout = file(wrapped_src, "w")
+        srcin = file(src_file, "r")
+        srcout.write("<%s>" % tag)
+        srcout.write(srcin.read())
+        srcout.write("</%s>" % tag)
+        srcin.close()
+        srcout.close()
+    return wrapped_src
+
+
 def build_doc(opts):
     final_file_list = []
     for f in opts.markdown_files:
@@ -974,23 +1026,25 @@ def build_doc(opts):
                 else:
                     cmd += ' --template "%s"'%(os.path.join(g.template_path, opts.template))
                 cmd += ' --highlight-style=tango --normalize'
-                cmd += ' --include-in-header="%s"'%os.path.join(g.css_path, "common.css")
-                cmd += ' --include-in-header="%s"'%g.pm_doc_js
+                cmd += ' --include-in-header="%s"'%wrap_with(os.path.join(g.css_path, "common.css"), "style")
+                cmd += ' --include-in-header="%s"'%wrap_with(g.pm_doc_js, "script")
                 if (opts.fmt == "pdf"):
                     cmd += " --number-sections"
                 else:
                     cmd += " --toc --toc-depth=6"
                     cmd += ' --css "%s"'%(g.font_awesome) # Only used for side bar, do not include for PDF
-                if (opts.live):
-                    cmd += "--include-in-header=%s" % g.liverefresh
                 # apply user-specified style
                 if g.opts.style is not None:
                     css = os.path.join(g.css_path, "%s.css"%opts.style)
                     if not os.path.exists(css):
                         error("Unable to find %s from style reference '%s'"%(css, opts.style))
-                    cmd += ' --include-in-header="%s"'%css
+                    cmd += ' --include-in-header="%s"'%wrap_with(css, "style")
 
                 # Handle any requested header or after includes from the plugins
+                for inc in plugins.css_includes:
+                    cmd += ' --include-in-header="%s"' % wrap_with(inc, "style")
+                for inc in plugins.javascript_includes:
+                    cmd += ' --include-after="%s"' % wrap_with(inc, "script")
                 for inc in plugins.header_includes:
                     cmd += ' --include-in-header="%s"' % inc
                 for inc in plugins.after_includes:
@@ -1603,7 +1657,6 @@ def setup_parser():
     """
     parser = _argparse.ArgumentParser(description='Convert markdown to misc formats build collateral')
     parser.add_argument('--chrome', required=False, default=False, action="store_true", help='Launch chrome on the output')
-    parser.add_argument('--live', required=False, default=False, action="store_true", help='Set a tag in the output to force live updates')
     parser.add_argument('--dotx', required=False, default=None, help='MS reference docx override.')
     parser.add_argument('--slides', required=False, default=False, action="store_true", help='Set if you wish to build slides')
     parser.add_argument('--template', required=False, default="auto", help='Set the template to use when building the output. If set to "auto" the tool chooses.')

@@ -1,4 +1,3 @@
-<script>
 // Handle glossary mouse events
 f.showDefinition = function() {
     /* This is our handle on the div to show */
@@ -66,5 +65,3 @@ for (var i = 0; i < classname.length; i++) {
     classname[i].addEventListener('mouseover', f.showDefinition);
     classname[i].addEventListener('mouseout', f.hideDefinition);
 }
-
-</script>

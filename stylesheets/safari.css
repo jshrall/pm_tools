@@ -1,30 +1,40 @@
-<style>
 #MAIN, #MAIN table {
-font-family: -apple-system, BlinkMacSystemFont, 'Roboto', Calibri, arial, sans-serif;
-font-size: 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Roboto', Calibri, arial, sans-serif;
+  font-size: 16px;
 }
 
 code {
-font-family: Monaco, 'Roboto Mono',Consolas,Lucida Console,Bitstream Vera Sans Mono,monospace,sans-serif;
-padding: 0px 5px;
-font-size: 12px;
+  font-family: Monaco, 'Roboto Mono', Consolas, Lucida Console, Bitstream Vera Sans Mono, monospace, sans-serif;
+  padding: 0px 5px;
+  font-size: 12px;
 }
 
-pre > code {
+pre>code {
   border-radius: 5px;
 }
 
 
 /* Slightly lighter sidebar */
+
 div#SIDEBAR {
   background: #888;
 }
 
-div#TOCCLOSE, div#TOCOPEN {
+div#TOCCLOSE,
+div#TOCOPEN {
   background-color: #888;
 }
 
-h1, h2, h3, h4, h5, h6, p.title, p.subtitle, p.author, p.date {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+p.title,
+p.subtitle,
+p.author,
+p.date {
   font-weight: normal;
   color: #383838;
 }
@@ -35,7 +45,8 @@ body {
   color: #383838;
 }
 
-.hastooltip .tooltip, .hastooltip .tooltip2 {
+.hastooltip .tooltip,
+.hastooltip .tooltip2 {
   font-family: -apple-system, BlinkMacSystemFont, Calibri, arial, sans-serif;
 }
 
@@ -47,23 +58,26 @@ table {
   font-family: -apple-system, BlinkMacSystemFont, Calibri, arial, sans-serif;
 }
 
+
 /* grey header */
+
 th {
   background-color: #e1e4e8;
 }
 
 
 /* Thinner lines */
-h2, p.author {
+
+h2,
+p.author {
   border-bottom: 1px solid #cccccc;
 }
-  
-h3, p.date {
+
+h3,
+p.date {
   border-bottom: 1px solid #cccccc;
 }
-  
+
 h4 {
   border-bottom: 1px solid #cccccc;
 }
-  
-</style>

@@ -7,8 +7,11 @@ process_mismatch_callbacks = []
 preprocess_callbacks = []
 postprocess_soup_callbacks = []
 postprocess_html_callbacks = []
+
 header_includes = []
 after_includes = []
+css_includes = []
+javascript_includes = []
 
 pkgnames = [x for x in os.listdir(_thisdir) if os.path.isfile(os.path.join(_thisdir, x, '__init__.py'))]
 
@@ -64,6 +67,28 @@ def initialize(preprocessor):
             include_in_header(mod, mod.include_in_header)
         if hasattr(mod, 'include_after'):
             include_after(mod, mod.include_after)
+        if hasattr(mod, 'css'):
+            css(mod, mod.css)
+        if hasattr(mod, 'javascript'):
+            javascript(mod, mod.javascript)
+
+def javascript(mod, this):
+    """
+    Add the requested file to the list of items we should include in the header.
+    """
+    include_file = os.path.join(os.path.abspath(os.path.split(mod.__file__)[0]), this)
+    if (not os.path.exists(include_file)):
+        raise Exception("Unable to include requested 'javascript' plugin file because it does not exist: '%s'" % include_file)
+    javascript_includes.append(include_file)
+
+def css(mod, this):
+    """
+    Add the requested file to the list of items we should include in the header.
+    """
+    include_file = os.path.join(os.path.abspath(os.path.split(mod.__file__)[0]), this)
+    if (not os.path.exists(include_file)):
+        raise Exception("Unable to include requested 'css' plugin file because it does not exist: '%s'" % include_file)
+    css_includes.append(include_file)
 
 def include_in_header(mod, this):
     """
@@ -71,7 +96,7 @@ def include_in_header(mod, this):
     """
     include_file = os.path.join(os.path.abspath(os.path.split(mod.__file__)[0]), this)
     if (not os.path.exists(include_file)):
-        raise Exception("Unable top include requested 'after' plugin file because it does not exist: '%s'" % include_file)
+        raise Exception("Unable to include requested 'after' plugin file because it does not exist: '%s'" % include_file)
     header_includes.append(include_file)
 
 def include_after(mod, this):
@@ -80,7 +105,7 @@ def include_after(mod, this):
     """
     include_file = os.path.join(os.path.abspath(os.path.split(mod.__file__)[0]), this)
     if (not os.path.exists(include_file)):
-        raise Exception("Unable top include requested 'after' plugin file because it does not exist: '%s'" % include_file)
+        raise Exception("Unable to include requested 'after' plugin file because it does not exist: '%s'" % include_file)
     after_includes.append(include_file)
 
 # process_mismatch() gets called for the "regular text", i.e. everything

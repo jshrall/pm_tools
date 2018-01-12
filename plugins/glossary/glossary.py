@@ -8,8 +8,8 @@ from markdown import markdown
 require_plugins = []
 
 # Add in our javascript and style handling
-include_in_header = "glossary.css"
-include_after = "glossary.js"
+css = "glossary.css"
+javascript = "glossary.js"
 
 class Term(object):
     def __init__(self, name, expansion, description):

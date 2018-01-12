@@ -1,4 +1,3 @@
-<style>
 /* Glossary Link (the basis for the mouseover) */
 .glossary_link {
      position: relative;
@@ -24,6 +23,11 @@
      border: 10px solid transparent;
      line-height: 1.5em;
 }
+
+/* Force the text color of children to be white */
+.definition_popup * {
+    color: #fff;
+}
                                                                                      
 /* This is the arrow, colorize the triangle that you want.
  * bottom for an up arrow, top for a down arrow
@@ -36,4 +40,3 @@
      border: 10px solid transparent; /* arrow size */
      border-bottom-color: #a86060;
 }
-</style>

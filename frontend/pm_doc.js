@@ -1,5 +1,3 @@
-<script>
-
 var g = {}; // Global variables
 g.fdb_state = "none";
 g.rsz_state = "none";
@@ -72,8 +70,8 @@ f.highlight_element = function(el, hl, page_height) {
             }
         } while (p);
     } else {
-        el.tocobj.style.backgroundColor = "inherit";
         el.tocobj.style.color = "inherit";
+        el.tocobj.style.backgroundColor = "inherit";
     }
 }
 
@@ -818,5 +816,3 @@ function init() {
 
     f.is_subscribed();
 }
-
-</script>
