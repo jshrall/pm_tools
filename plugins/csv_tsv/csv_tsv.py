@@ -19,6 +19,14 @@ class CsvPlugin(object):
         # Remove illegal characters
         code = self.pp.cleanstr(code)
 
+        # Remove bars
+        lines = code.split("\n")
+        cleaned_code = []
+        for line in lines:
+            if not re.search(r"^(=+|-+)$", line):
+                cleaned_code.append(line)
+        code = "\n".join(cleaned_code)
+
         fn_src, _, update, title = self.pp.get_source(code, filename_or_title, ".csv", None, title)
 
         csv_handle = _csv.reader(file(fn_src), escapechar="\\", delimiter=separator)
@@ -73,6 +81,20 @@ class CsvPlugin(object):
         return s
 
 
+class PsvPlugin(object):
+
+    def __init__(self, preprocessor):
+        self.pp = preprocessor
+        self.token = "psv"
+        self.pp.register_plugin(self)
+
+    def process(self, code, filename_or_title, **kwargs):
+        """
+        Read and import TSV file or text.  Insert table into the output
+        """
+        kwargs.update(separator = "|")
+        return csv.process(code, filename_or_title, **kwargs)
+
 class TsvPlugin(object):
 
     def __init__(self, preprocessor):
@@ -88,4 +110,4 @@ class TsvPlugin(object):
         return csv.process(code, filename_or_title, **kwargs)
 
 
-new = [CsvPlugin, TsvPlugin]
+new = [CsvPlugin, TsvPlugin, PsvPlugin]
