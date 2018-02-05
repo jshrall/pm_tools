@@ -1,4 +1,6 @@
 import os
+import sys
+import util
 
 class Xsd2htmlPlugin(object):
 
@@ -6,7 +8,10 @@ class Xsd2htmlPlugin(object):
         self.pp = preprocessor
         self.token = "xsd2html"
         self.pp.register_plugin(self)
-        self.msxsl = self.pp.toolpath("plugins/xsd2html/msxsl/msxsl.exe") 
+        if (sys.platform == "win32"):
+            self.msxsl = self.pp.toolpath("plugins/xsd2html/msxsl/msxsl.exe") 
+        else:
+            self.msxsl = util.which("xsltproc") 
         self.xs3p =  self.pp.toolpath("plugins/xsd2html/msxsl/xs3p.xsl") 
 
     def process(self, code, fname, title=None, div_style=None):
