@@ -83,7 +83,7 @@ Blank lines between signals are assumed to be intentional spacers
 * Period and phase
 * Skins
 
-```
+<pre><code>&#96;&#96;&#96;wavedrom("Shorthand Timing Syntax")
 # Waveform
 clk   | p..Pp..P
       | .a......
@@ -103,7 +103,7 @@ b-|>c a sharp edge
 
 # Config
 hscale: 2
-```
+&#96;&#96;&#96;</code></pre>
 
 ```wavedrom("Shorthand Timing Syntax")
 # Waveform
