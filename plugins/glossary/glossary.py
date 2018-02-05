@@ -1,9 +1,5 @@
 import re
 import bs4
-from markdown import markdown
-
-# TODO: there is a problem with the javascript or css that is causing the href text to come to the front. 
-# This is easily seen with the glossary example. How to fix this?
 
 require_plugins = []
 
@@ -50,6 +46,9 @@ class GlossaryPlugin(object):
         main = soup.find("div", {"id": "MAIN"})
 
         term_search = re.compile(r"^(|.*?[\s(\"'])(%s)(|[\s.?!\"',)].*)$" % term_list, re.MULTILINE)
+        if main == None:
+            return
+
         for string in list(main.strings):
             if string.parent.name == "code": continue # skip code fragments
             if string.parent.name == "a": continue # skip hyperlinks
@@ -114,20 +113,13 @@ class GlossaryPlugin(object):
                 term = new_terms[name]
                 s += "<div class=\"definition_popup_arrow\" id=\"define_%sarrow\"></div>\n" % term.name
                 s += "<div class=\"definition_popup\" id=\"define_%s\">\n" % term.name
-                md2html = markdown(term.description.strip())
-                # I want to remove containing <p> ... </p> if they are there alone. But if it is part of a more 
-                # complex string, I want to leave them.
-                if (re.search("<p>.*?</p>$", md2html)):
-                    if md2html.startswith("<p>"): md2html = md2html[3:]
-                    if md2html.endswith("</p>"): md2html = md2html[:-4]
                 if (term.expansion != None):
                     # First add the expansion
-                    s += "<b>%s</b><br>" % term.expansion
-                s += md2html
-                s += "</div>\n"
-            s += "</div>\n"
+                    s += "**%s**\n\n" % term.expansion
+                s += term.description.strip()
+                s += "\n</div>\n"
+            s += "\n</div>\n\n"
             self.glossid += 1
-            s += "\n\n"
 
         # Insert string for the glossary insertion, it will happen at a later phase.
         if (show):
@@ -142,6 +134,9 @@ class GlossaryPlugin(object):
         Split into terms and definitions and return a dict with the results.
 
         Collect all glossary terms in the document, they will be printed later.
+
+        Special handling for inline images to support scenarios where this file is inserted
+        inline with another file (and the path is wrong).
         """
         terms = re.split("\n==", code)
         new_terms = {}
@@ -158,8 +153,17 @@ class GlossaryPlugin(object):
                     continue
                 term_name = values[0].strip()
                 term_expansion = values[1].strip()
+
+            # Expand term definition as if it is markdown. This requires callbacks to the
+            # main processing agent to ensure dependencies are properly logged
             term_definition = "\n".join(lines[1:])
-            self.terms[term_name] = Term(term_name, term_expansion, term_definition)
+
+            # This markdown processing is important to handle images and inline files that
+            # may be inserted in the output. These need to be modified with the right paths.
+            # It's important because this markdown will be inserted as a post-processing step and 
+            # is not subject to the normal processing that happens.
+            markdown = self.pp.process_markdown(term_definition)
+            self.terms[term_name] = Term(term_name, term_expansion, markdown)
             new_terms[term_name] = self.terms[term_name]
         return new_terms
             
@@ -181,10 +185,10 @@ class GlossaryPlugin(object):
             term = self.terms[name]
             s += "<tr>\n"
             if (term.expansion == None):
-                s += "  <td>%s</td><td><a id=\"glossary_%s\"/>%s</td>\n" % (term.name, term.name, term.description)
+                s += "  <td>%s</td><td><a id=\"glossary_%s\"/>\n%s\n</td>\n" % (term.name, term.name, term.description)
             else:
                 # This term has an acronym expansion.
-                s += "  <td>%s</td><td><a id=\"glossary_%s\"/><b>%s</b><br>%s</td>\n" % (term.name, term.name, term.expansion, term.description)
+                s += "  <td>%s</td><td><a id=\"glossary_%s\"/>\n**%s**\n\n%s\n</td>\n" % (term.name, term.name, term.expansion, term.description)
             s += "</tr>"
         s += "</table>\n"
         s += '<p class="table_caption">Glossary</p>\n'

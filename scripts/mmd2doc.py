@@ -99,6 +99,7 @@ class PandocPreproc(object):
         cleanup_deptree(self.fname)
         # "API" for plugins
         self.token2func = {}
+        self.plugin_output_format = {}
         self.toolpath = toolpath
         self.phantomjs = g.phantomjs
         self.java_exe = g.java_exe
@@ -123,6 +124,8 @@ class PandocPreproc(object):
         s = self.parse(fname)
         # plugin pre-processing
         s = plugins.preprocess(s)
+        # Run one last processing phase to catch any dependencies from the pre-processing
+        s = self.parse(fname, s)
         # Write output for pandoc processing
         self.outf.file.write(s)
         self.outf.file.close()
@@ -132,7 +135,7 @@ class PandocPreproc(object):
         if self.fmt == "docx" or g.opts.email:
             self.svg2png()
 
-    def register_plugin(self, plugin):
+    def register_plugin(self, plugin, fmt="html"):
         """
         `plugin` is an instance of a plugin class, expected to have following attributes:
             token - token string by which the plugin is recognized
@@ -141,6 +144,7 @@ class PandocPreproc(object):
         """
         self.legal_tokens.append(plugin.token)
         self.token2func[plugin.token] = plugin.process
+        self.plugin_output_format[plugin.token] = fmt
 
     def fix_broken_svg(self):
         """
@@ -429,22 +433,34 @@ class PandocPreproc(object):
             print "While processing %s token:\n%s"%(token.typ, token.value)
             raise
 
-    def insert_file(self, fullpath):
+    def insert_file(self, insert_code, is_file=True):
+        """Read file or markdown text and collect new tokens
+
+        Args:
+            insert_code (str): Full path to filename or raw markdown text
+            is_file (bool, optional): Defaults to True. If true, insert_code is treated as a filename, else it is raw markdown.
+        
+        Returns:
+            list: List of new tokens from inserting the file or markdown.
         """
-        Read file and collect new tokens
-        """
-        # Read the file and insert contents into the token queue
-        insert_code = open(fullpath, "r").read()
-        # Insert a newline at the start
-        insert_code = "\n\n" + insert_code + "\n\n"
+        if is_file:
+            # Read the file and insert contents into the token queue
+            insert_code = open(insert_code, "r").read()
+            # Insert a newline at the start
+            insert_code = "\n\n" + insert_code + "\n\n"
         new_tokens = [t for t in self.tokenize(insert_code, self.token_specification)]
         return new_tokens
 
-    def parse(self, fname):
+    def parse(self, fname, code=None):
         """
         Parse the file, build output collateral as needed
         """
-        src_code = open(fname, "r").read()
+        src_code = ""
+        if code != None:
+            src_code = code
+        else:
+            src_code = open(fname, "r").read()
+
         dirname = os.path.dirname(os.path.abspath(fname))
 
         # Make sure we have 'auto' instantiated!
@@ -460,6 +476,7 @@ class PandocPreproc(object):
         #   - Use self.dirs[-1] when searching for included files and generating
         #     automatic content 
         self.dirs = [dirname]
+
         g.hlevel = [0]
 
         hlevel = 0 # local one is for tracking level within a document
@@ -546,6 +563,23 @@ class PandocPreproc(object):
 
         return output
 
+
+    def process_markdown(self, code):
+        """Process string as markdown, handling inline images
+        
+        Args:
+            code (str): Raw input string (markdown)
+        
+        Returns:
+            str: Processed markdown with any fixes as needed
+        """
+        lines = code.split("\n")
+        for i in range(len(lines)):
+            if re.search(r"^!\[[^\]]*\]\([^\)]+\.(?:jpg|png|svg|JPG|PNG)\)\s*$", lines[i]):
+                lines[i] = self.parse_image(lines[i])
+
+        return "\n".join(lines)
+
     def parse_insert_file(self, token):
         """
         Token parser for inline files
@@ -573,7 +607,6 @@ class PandocPreproc(object):
                 # we want to allow for the case there were no files matching, and then some appeared, and 
                 # we need to trigger a rebuild due to that
                 log_dependency(self.fname, f)
-
                 new_tokens = self.insert_file(f)
                 push_dir = self.token("PUSH_DIR", (os.path.dirname(f), no_hlevel), 0, 0)
                 pop_dir = self.token("POP_DIR", 0, 0, 0)
@@ -590,8 +623,14 @@ class PandocPreproc(object):
         """
         Token parser for images
         """
-        s = cleanstr(token.value)
+        s = token
+        if not isinstance(token, str):
+            s = cleanstr(token.value)
+
         image_full_path = os.path.join(self.dirs[-1], re.search(r'\[[^\]]*\]\s*\(([^\)]+)\)', s).group(1))
+        if not os.path.isfile(image_full_path):
+            return s
+
         log_dependency(self.fname, image_full_path)
 
         # modify image path to be relative to top-level document directory
@@ -991,7 +1030,7 @@ def build_doc(opts):
 
         # Call pandoc to render (pre-processed) markdown
         if (opts.fmt == "docx"):
-            _call('"%s" %s -s "%s" -t docx --normalize --number-sections --reference-docx=%s -o "%s"' % (g.pandoc, variables, infile, g.dotx, cwd_outfile), cwd=dirname)
+            _call('"%s" %s -s "%s" -t docx --number-sections --reference-docx=%s -o "%s"' % (g.pandoc, variables, infile, g.dotx, cwd_outfile), cwd=dirname)
 
         elif (opts.email):
             cmd = '"%s" "%s" -o "%s" %s'%(g.pandoc, infile, cwd_outfile, opts.pandoc_args)
@@ -1025,7 +1064,7 @@ def build_doc(opts):
                     cmd += ' --template "%s"'%g.html_template
                 else:
                     cmd += ' --template "%s"'%(os.path.join(g.template_path, opts.template))
-                cmd += ' --highlight-style=tango --normalize'
+                cmd += ' --highlight-style=tango'
                 cmd += ' --include-in-header="%s"'%wrap_with(os.path.join(g.css_path, "common.css"), "style")
                 cmd += ' --include-in-header="%s"'%wrap_with(g.pm_doc_js, "script")
                 if (opts.fmt == "pdf"):
@@ -1560,6 +1599,7 @@ def cleanstr(s):
     s = re.sub(r'\xbb', '&gt;&gt;', s) # >> char
     s = re.sub(r'\xc3', 'n', s)        # n~ char
     s = re.sub(r'\xce', '&micro;', s)        # micro
+    s = re.sub(r'\xb2', '^2^', s)        # superscript2
 
     # Use HTML "micro" entity for 1us, 0.8uV, 100uA, and so on
     s = fix_units(s)

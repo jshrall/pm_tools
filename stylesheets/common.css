@@ -997,7 +997,10 @@ svg {
 div.figure img,
 div.figure svg {
   display: block;
-  max-width: 100%;
+  /* Images larger than 800px generally look bloated relative
+   * to the surrounding text. Limit them to just 800px 
+   */
+  max-width: 800px;
   color: #0064a5;
 }
 
