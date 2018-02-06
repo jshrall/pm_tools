@@ -11,13 +11,13 @@ that allows embedding:
 * [Flowchart.js](http://flowchart.js.org) diagrams
 * [Schemdraw](https://cdelker.bitbucket.io/SchemDraw/SchemDraw.html) circuit diagrams
 * [Mathjax](https://www.mathjax.org) formulas
+* [Mermaid](https://mermaidjs.github.io) diagrams
 * Arbitrary python code output
 * Data structure (registers, packets) definitions
-* MS Visio diagrams (as zoomable SVG)
+* Omnigraffle diagrams (as zoomable SVG)
 * Excel tables (as HTML tables)
-* Excel "screenshots" (as PNG)
-* csv/tsv
-* XSD schemas
+* csv/tsv/psv
+* Integrated glossary
 
 Main output format is HTML (single-file), with PDF also supported.
 
@@ -26,14 +26,11 @@ Principles of pm_doc:
 * Ability to edit documents fully offline
 * Ability to view documents fully offline (Mathjax formulas currently require online connection or
   cached Mathjax)
-* Single output document contained in a single HTML file (to make easy to copy / send by e-mail)
+* Single, self-contained output document contained in a single HTML file (to make easy to copy / send by e-mail)
 
 # Requirements
 
-* Windows
 * Python 2.7
-* MS Visio (for embedding Visio diagrams)
-* MS Excel (for embedding Excel "screenshots")
 
 # Quick start
 
@@ -52,26 +49,25 @@ Run from the git bash (recommended) console:
     python $PM_DOC/scripts/mmd2doc.py hello.md
 
 Above command should produce hello.html file similar to
-[this](https://glexey.github.io/pm_tools/doc/hello_world/hello.html).
+[this](https://jshrall.github.io/pm_tools/doc/hello_world/hello.html).
 
 # Next steps
 
 An overview of all features with the examples can be found here:
-[example.html](https://glexey.github.io/pm_tools/doc/example.html). The source of this document is
-in [doc/example.mmd](doc/example.mmd). Best way to learn pm_tools features is to display source
-[example.mmd](doc/example.mmd) and output
-[example.html](https://glexey.github.io/pm_tools/doc/example.html) side-by-side and compare.
+
+[example.html](https://jshrall.github.io/pm_tools/doc/example.html). The source of this document
+is in [doc/example.md](https://jshrall.github.io/pm_tools/doc/example.md) and the plugin source
+docs are all in [plugins/\*/doc/\*.md](https://jshrall.github.io/pm_tools/plugins/doc). The best
+way to learn pm_tools features is to display sourc markdown and output
+[example.html](https://jshrall.github.io/pm_tools/doc/example.html) side-by-side and compare.
 
 Note: PM_TOOLS rendering of the [README.md](README.md) you are reading right now can be viewed here:
-[README.html](https://glexey.github.io/pm_tools/README.html).
+[README.html](https://jshrall.github.io/pm_tools/README.html).
 
 # FIXME
 
 The following features are missing from this **pm_doc** distribution:
 
-* Word2mmd conversion
 * Test/regressions
 * Build/release automation
 * Python 3 support
-* Linux support
-* Firefox and Safari browser support

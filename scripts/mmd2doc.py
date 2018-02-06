@@ -843,6 +843,11 @@ def hack_svg_height_width(svg, fmt, div_style):
         x1, y1, x2, y2 = [float(x) for x in m.group(1).split()]
         width, height = int(x2 - x1), int(y2 - y1)
 
+        if (width == 0):
+            # avoid div by zero
+            warn("Failed to parse SVG x and y correctly.  Skipping")
+            return svg
+
         # If user has provided a div style width in pixels, scale SVG to match
         if div_style is not None:
             mo = re.search(r'(?i)width\s*:\s*([\d\.]+)\s*(?:px|;|$)', div_style)
