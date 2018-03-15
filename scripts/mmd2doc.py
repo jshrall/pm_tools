@@ -31,7 +31,7 @@ repo_root = os.path.abspath(os.path.join(_thisdir, ".."))
 sys.path.append(os.path.join(_thisdir, '..'))
 import plugins
 
-valid_ftypes = [".mmd", ".md", ".mds"]
+valid_ftypes = [".md", ".mds"]
 
 class Globals: pass
 g = Globals()
@@ -132,7 +132,7 @@ class PandocPreproc(object):
         #
         self.convert_visio()
         self.fix_broken_svg()
-        if self.fmt == "docx" or g.opts.email:
+        if self.fmt == "docx" or self.fmt == "rtf" or g.opts.email:
             self.svg2png()
 
     def register_plugin(self, plugin, fmt="html"):
@@ -992,6 +992,8 @@ def build_doc(opts):
 
         if (opts.fmt == "docx"):
             outfile = util.replace_ext(fnabs, ".docx")
+        elif (opts.fmt == "rtf"):
+            outfile = util.replace_ext(fnabs, ".rtf")
         elif (opts.fmt == "html"):
             if opts.email:
                 outfile = util.replace_ext(fnabs, ".email.html")
@@ -1036,6 +1038,9 @@ def build_doc(opts):
         # Call pandoc to render (pre-processed) markdown
         if (opts.fmt == "docx"):
             _call('"%s" %s -s "%s" -t docx --number-sections --reference-docx=%s -o "%s"' % (g.pandoc, variables, infile, g.dotx, cwd_outfile), cwd=dirname)
+
+        elif (opts.fmt == "rtf"):
+            _call('"%s" %s -s "%s" -t rtf -o "%s"' % (g.pandoc, variables, infile, cwd_outfile), cwd=dirname)
 
         elif (opts.email):
             cmd = '"%s" "%s" -o "%s" %s'%(g.pandoc, infile, cwd_outfile, opts.pandoc_args)
@@ -1705,7 +1710,7 @@ def setup_parser():
     parser.add_argument('--dotx', required=False, default=None, help='MS reference docx override.')
     parser.add_argument('--slides', required=False, default=False, action="store_true", help='Set if you wish to build slides')
     parser.add_argument('--template', required=False, default="auto", help='Set the template to use when building the output. If set to "auto" the tool chooses.')
-    parser.add_argument('--fmt', required=False, default="html", choices=["docx", "pdf", "html"], help='Outpuf file format')
+    parser.add_argument('--fmt', required=False, default="html", choices=["docx", "pdf", "rtf", "html"], help='Outpuf file format')
     parser.add_argument('--nopre', required=False, default=False, action="store_true", help='Disable preprocessor')
     parser.add_argument('--waitonerr', required=False, default=False, action="store_true", help='Stall execution upon an error, require user to acknowledge')
     parser.add_argument('--style', required=False, help='Set the style type')
